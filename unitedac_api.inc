@@ -20,7 +20,7 @@
 
 #endif
 
-#define _uac_DEBUG 1
+#define _uac_DEBUG 0
 
 #if _uac_PLUGINS == 1
 
@@ -51,7 +51,7 @@
 
 #if THREAD_OFFSET > MAX_PLAYERS
 	#undef THREAD_OFFSET
-	#define THREAD_OFFSET 100 + MAX_PLAYERS
+	#define THREAD_OFFSET MAX_PLAYERS
 #endif
 
 new Timer:AC_Update;
@@ -209,7 +209,7 @@ hook OnPlayerDisconnect(playerid, reason) {
 	Bit_Vet(HasTrainer, playerid);
 
 	for(new i=0; i < FILES; ++i) {
-	    Files[i] = true;
+	    Files[playerid][i] = true;
 	}
 
 	return 1;
@@ -232,7 +232,7 @@ stock AC_GetInfo(playerid) {
 		
 		#if _uac_DEBUG == 1
 		if(!strcmp(IP, "127.0.0.1", true)) {
-			IP = "74.242.234.105";
+			IP = "";
 		}
 		#endif
 
@@ -271,14 +271,6 @@ public ACResponse(index, code, data[]) {
 		
 	    #if _uac_PLUGINS == 1
 	    
-	    /*if(data[1] != ' ') { // Server not approved for anti-cheat usage.
-	        printf(data);
-	        AC_Toggle(false);
-	        return 1;
-	        // hint to the fags looking through this include: removing this if() block won't make anti-cheat work if your server is not approved; it has to be done server-side.
-	    }*/
-	    // all servers can use AC now without being whitelisted.
-	    
 		new bool:acrunning, bool:hasasi, bool:hastrainer;
 		sscanf(data, "p< >lllA<l>(false)["#FILES"]", acrunning, hasasi, hastrainer, Files[index - THREAD_OFFSET]);
 
@@ -288,13 +280,6 @@ public ACResponse(index, code, data[]) {
 		);
 		#else
 		
-		/*if(data[1] != ',') { // Server not approved for anti-cheat usage.
-	        printf(data);
-	        AC_Toggle(false);
-	        return 1;
-	        // hint to the fags looking through this include: removing this if() block won't make anti-cheat work if your server is not approved; it has to be done server-side.
-	    }*/
-	    // all servers can use AC now without being whitelisted.
 
 		new str[35][20];
 		strexplode(str, data, ",");
