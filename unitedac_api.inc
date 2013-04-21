@@ -7,6 +7,7 @@
 
 #include <a_samp>
 #include <a_http>
+#include <strlib>
 
 #if defined _unitedac_api_included
 	#endinput
@@ -30,11 +31,12 @@
 
 #else
 
-#include <strlib>
 #define QUERY_URL 			"u-army.com/AC_API/pInfo_.php"
 #define UPDATE_URL          "u-army.com/AC_API/update_.php"
 
 #endif
+
+#define BAN_URL             "u-army.com/AC_API/ban.php"
 
 // in hindsight, pretty stupid to have different PHP scripts for with and without plugin, have to keep them now compatibility, can't be FUCKED to change it either.
 // (why is there even options for with and without plugin, anyway?)
@@ -44,7 +46,7 @@
 #include <YSI\y_timers>
 #include <YSI\y_hooks>
 
-#define VERSION 1.4
+#define VERSION 1.5
 
 #define THREAD_OFFSET 100
 #define FILES 31
@@ -198,6 +200,19 @@ public UpdateResponse(index, code, data[]) {
 
 hook OnPlayerConnect(playerid)
 {
+    new IP[MAX_PLAYER_NAME], postdata[50];
+	GetPlayerIp(playerid, IP, sizeof(IP));
+
+	#if _uac_DEBUG == 1
+	if(!strcmp(IP, "127.0.0.1", true)) {
+		IP = "";
+	}
+	#endif
+
+	format(postdata, sizeof(postdata), "IP=%s", IP);
+	printf(postdata);
+	 	
+ 	HTTP(playerid + THREAD_OFFSET + THREAD_OFFSET, HTTP_POST, BAN_URL, postdata, "BanResponse");
    	AC_GetInfo(playerid);
    	return 1;
 }
@@ -243,7 +258,38 @@ stock AC_GetInfo(playerid) {
 	return 1;
 }
 
+forward BanResponse(index, code, data[]);
+public BanResponse(index, code, data[]) {
+	new playerid = (index - THREAD_OFFSET) - THREAD_OFFSET;
+	if(code != 200) {
+	    new IP[MAX_PLAYER_NAME], postdata[50];
+		GetPlayerIp(playerid, IP, sizeof(IP));
 
+		#if _uac_DEBUG == 1
+		if(!strcmp(IP, "127.0.0.1", true)) {
+			IP = "";
+		}
+		#endif
+		format(postdata, sizeof(postdata), "IP=%s", IP);
+
+		HTTP(playerid + THREAD_OFFSET + THREAD_OFFSET, HTTP_POST, BAN_URL, postdata, "BanResponse");
+		return printf("United Anti-cheat error: Failed to connect to website API");
+	}
+	
+	if(!strcmp(data, "1", true)) {
+	    SetTimerEx("KickPlayer", 1, 0, "d", playerid); // 1 ms timer fix so player who gets kicked actually recieves this message
+	    new str[128], name[MAX_PLAYER_NAME];
+	    GetPlayerName(playerid, name, sizeof(name));
+	    format(str, sizeof(str), "{FF0000}%s{FFFFFF} has been kicked from the server for being banned from [U]nited Anti-Cheat", name);
+	    SendClientMessageToAll(-1, str);
+	}
+	return 1;
+}
+
+forward KickPlayer(playerid);
+public KickPlayer(playerid) {
+	Kick(playerid);
+}
 
 forward ACResponse(index, code, data[]);
 public ACResponse(index, code, data[]) {
