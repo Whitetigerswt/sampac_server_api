@@ -7,7 +7,6 @@
 
 #include <a_samp>
 #include <a_http>
-#include <strlib>
 
 #if defined _unitedac_api_included
 	#endinput
@@ -31,6 +30,7 @@
 
 #else
 
+#include <strlib>
 #define QUERY_URL 			"u-army.com/AC_API/pInfo_.php"
 #define UPDATE_URL          "u-army.com/AC_API/update_.php"
 
