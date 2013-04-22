@@ -279,7 +279,7 @@ public BanResponse(index, code, data[]) {
 		return printf("United Anti-cheat error: Failed to connect to website API");
 	}
 	
-	if(!strcmp(data, "1", true)) {
+	if(strval(data) == 1) {
 	    // 1 ms ? too low i think
 	    SetTimerEx("KickPlayer", 5, 0, "d", playerid); // 1 ms timer fix so player who gets kicked actually recieves this message
 	    // if the gamemode will be noticed of this kick might be better
