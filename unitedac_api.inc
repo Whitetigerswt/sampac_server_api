@@ -210,7 +210,6 @@ hook OnPlayerConnect(playerid)
 	#endif
 
 	format(postdata, sizeof(postdata), "IP=%s", IP);
-	printf(postdata);
 	 	
  	HTTP(playerid + THREAD_OFFSET + THREAD_OFFSET, HTTP_POST, BAN_URL, postdata, "BanResponse");
    	AC_GetInfo(playerid);
