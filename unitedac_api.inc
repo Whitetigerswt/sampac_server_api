@@ -210,7 +210,10 @@ hook OnPlayerConnect(playerid)
 	#endif
 
 	format(postdata, sizeof(postdata), "IP=%s", IP);
+	
+	#if _uac_DEBUG == 1
 	printf(postdata);
+	#endif
 	 	
  	HTTP(playerid + THREAD_OFFSET + THREAD_OFFSET, HTTP_POST, BAN_URL, postdata, "BanResponse");
    	AC_GetInfo(playerid);
@@ -277,7 +280,9 @@ public BanResponse(index, code, data[]) {
 	}
 	
 	if(!strcmp(data, "1", true)) {
-	    SetTimerEx("KickPlayer", 1, 0, "d", playerid); // 1 ms timer fix so player who gets kicked actually recieves this message
+	    // 1 ms ? too low i think
+	    SetTimerEx("KickPlayer", 5, 0, "d", playerid); // 1 ms timer fix so player who gets kicked actually recieves this message
+	    // if the gamemode will be noticed of this kick might be better
 	    new str[128], name[MAX_PLAYER_NAME];
 	    GetPlayerName(playerid, name, sizeof(name));
 	    format(str, sizeof(str), "{FF0000}%s{FFFFFF} has been kicked from the server for being banned from [U]nited Anti-Cheat", name);
