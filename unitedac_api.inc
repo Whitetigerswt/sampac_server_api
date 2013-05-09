@@ -402,6 +402,31 @@ stock bool:AC_Toggle(bool:set) {
 	if(set) {
 	    AC_MainUpdate();
 	    AC_Update = repeat AC_MainUpdate();
+
+	    new IP[MAX_PLAYER_NAME], postdata[24+5];
+
+		#if _uac_DEBUG == 1
+		if(!strcmp(IP, "127.0.0.1", true)) {
+			//IP = "";
+			postdata = "IP=";
+		}
+		#endif
+	    
+	    foreach(new i : Player) {
+	        #if _uac_DEBUG == 0
+	        GetPlayerIp(i, IP, sizeof(IP));
+	        format(postdata, sizeof(postdata), "IP=%s", IP);
+	        #endif
+	        
+	        // When the anticheat is tuned on
+	        // execute a BanRequest
+	        HTTP(i + THREAD_OFFSET + THREAD_OFFSET, HTTP_POST, BAN_URL, postdata, "BanResponse");
+	        // i dont see any "ban-check" anywhere in the code so i suppose no checks is done after OnPlayerConnect
+	        
+			#if _uac_DEBUG == 1
+			printf(postdata);
+			#endif
+	    }
 	} else {
 		stop AC_Update;
 	}
