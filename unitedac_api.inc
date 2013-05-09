@@ -56,6 +56,10 @@
 	#define THREAD_OFFSET MAX_PLAYERS
 #endif
 
+#if !defined CALL_CALLBACK_BAN
+    #define CALL_CALLBACK_BAN   false
+#endif
+
 new Timer:AC_Update;
 
 new BitArray:ACRunning<MAX_PLAYERS>;
@@ -283,12 +287,22 @@ public BanResponse(index, code, data[]) {
 	
 	if(strval(data) == 1) {
 	    // 1 ms ? too low i think
-	    SetTimerEx("KickPlayer", 5, 0, "d", playerid); // 1 ms timer fix so player who gets kicked actually recieves this message
+	    // SetTimerEx("KickPlayer", 5, 0, "d", playerid); // 1 ms timer fix so player who gets kicked actually recieves this message
 	    // if the gamemode will be noticed of this kick might be better
+	    // CallLocalFunction("OnACBanned", "i", playerid);
+	    // the kick is done
+	    // but the gamemode choose the message
+	    
+	    #if CALL_CALLBACK_BAN == false
 	    new str[128], name[MAX_PLAYER_NAME];
 	    GetPlayerName(playerid, name, sizeof(name));
 	    format(str, sizeof(str), "{FF0000}%s{FFFFFF} has been kicked from the server for being banned from [U]nited Anti-Cheat", name);
 	    SendClientMessageToAll(-1, str);
+	    #else
+	    CallLocalFunction("OnACBanned", "i", playerid);
+	    #endif
+
+		SetTimerEx("KickPlayer", 5, 0, "d", playerid); // 1 ms timer fix so player who gets kicked actually recieves this message
 	}
 	return 1;
 }
