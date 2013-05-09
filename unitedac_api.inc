@@ -214,9 +214,11 @@ hook OnPlayerConnect(playerid)
 	#if _uac_DEBUG == 1
 	printf(postdata);
 	#endif
-	 	
- 	HTTP(playerid + THREAD_OFFSET + THREAD_OFFSET, HTTP_POST, BAN_URL, postdata, "BanResponse");
-   	AC_GetInfo(playerid);
+
+	if(Bit_Get(ACOn, 0) == true) {
+	 	HTTP(playerid + THREAD_OFFSET + THREAD_OFFSET, HTTP_POST, BAN_URL, postdata, "BanResponse");
+	   	AC_GetInfo(playerid);
+	}
    	return 1;
 }
 
@@ -244,7 +246,7 @@ timer AC_MainUpdate[120000]() {
 }
 
 stock AC_GetInfo(playerid) {
-	if(Bit_Get(ACOn, 0) == true) {
+ 	if(Bit_Get(ACOn, 0) == true) {
 	    new IP[MAX_PLAYER_NAME], url[128], postdata[50];
 		GetPlayerIp(playerid, IP, sizeof(IP));
 		
