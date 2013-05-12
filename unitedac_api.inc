@@ -269,6 +269,11 @@ stock AC_GetInfo(playerid) {
 
 forward BanResponse(index, code, data[]);
 public BanResponse(index, code, data[]) {
+	// if the anticheat has been turned off and the HTTP response wasn't finished
+	// just ignore the result
+	
+    if(Bit_Get(ACOn, 0) == false) return 0;
+    
 	new playerid = (index - THREAD_OFFSET) - THREAD_OFFSET;
 	if(code != 200) {
 	    new IP[MAX_PLAYER_NAME], postdata[50];
