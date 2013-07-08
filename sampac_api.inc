@@ -142,7 +142,7 @@ forward UpdateResponse(index, code, data[]);
 public UpdateResponse(index, code, data[]) {
     if(code != 200) {
         HTTP(THREAD_OFFSET, HTTP_GET, UPDATE_URL, "", "UpdateResponse");
-	    return printf("SAMP Anti-cheat error: Failed to connect to website API");
+	    return printf("Whitetiger's Anti-cheat error: Failed to connect to website API");
 	}
 	#pragma unused index
 
@@ -156,13 +156,13 @@ public UpdateResponse(index, code, data[]) {
 	url = str[1];
 
 	if(!strlen(url) || version == 0.0) {
-	    return printf("SAMP AC Error: Failed to check for an update.");
+	    return printf("Whitetiger's AC Error: Failed to check for an update.");
 	}
 
 	#else
 
 	if(sscanf(data, "fs[128]", version, url)) {
-	    return printf("SAMP AC Error: Failed to check for an update.");
+	    return printf("Whitetiger's AC Error: Failed to check for an update.");
 	}
 
 	#endif
@@ -170,7 +170,7 @@ public UpdateResponse(index, code, data[]) {
 	if(version > VERSION) {
 	    printf("__________________________________________________");
 	    printf("");
-	    printf("** Your SAMP Anti-Cheat API include is out of date, your old version may not continue to work.");
+	    printf("** Your Whitetiger's Anti-Cheat API include is out of date, your old version may not continue to work.");
 		printf("A new version is available at: %s", url);
 		printf("");
 		printf("__________________________________________________");
@@ -179,20 +179,20 @@ public UpdateResponse(index, code, data[]) {
 	    printf(data);
 	    printf("__________________________________________________");
 	    printf("");
-	    printf("** Server not approved for SAMP Anti-cheat Usage, Disabled.");
+	    printf("** Server not approved for Whitetiger's Anti-cheat Usage, Disabled.");
 	    printf("");
 	    printf("__________________________________________________");
 	} else if(!strcmp(url, "Under Maintenance.")) {
 	    printf("__________________________________________________");
 	    printf("");
-	    printf("** SAMP Anti-Cheat is current under scheduled maintenance, it cannot be enabled at this time.");
+	    printf("** Whitetiger's Anti-Cheat is current under scheduled maintenance, it cannot be enabled at this time.");
 	    printf("");
 	    printf("__________________________________________________");
 	    AC_Toggle(false);
 	} else {
 	    printf("__________________________________________________");
 	    printf("");
-	    printf("** SAMP Anti-Cheat is on the most up-to-date version!");
+	    printf("** Whitetiger's Anti-Cheat is on the most up-to-date version!");
 	    printf("");
 	    printf("__________________________________________________");
 	}
@@ -262,14 +262,14 @@ public BanResponse(index, code, data[]) {
 		format(postdata, sizeof(postdata), "IP=%s", IP);
 
 		HTTP(playerid + THREAD_OFFSET + THREAD_OFFSET, HTTP_POST, BAN_URL, postdata, "BanResponse");
-		return printf("SAMP Anti-cheat error: Failed to connect to website API");
+		return printf("Whitetiger's Anti-cheat error: Failed to connect to website API");
 	}
 	
 	if(!strcmp(data, "1", true)) {
 	    SetTimerEx("KickPlayer", 1, 0, "d", playerid); // 1 ms timer fix so player who gets kicked actually recieves this message
 	    new str[128], name[MAX_PLAYER_NAME];
 	    GetPlayerName(playerid, name, sizeof(name));
-	    format(str, sizeof(str), "{FF0000}%s{FFFFFF} has been kicked from the server for being banned from SAMP Anti-Cheat", name);
+	    format(str, sizeof(str), "{FF0000}%s{FFFFFF} has been kicked from the server for being banned from Whitetiger's Anti-Cheat", name);
 	    SendClientMessageToAll(-1, str);
 	}
 	return 1;
@@ -285,7 +285,7 @@ public ACResponse(index, code, data[]) {
     if(code != 200) {
         // try again?
         AC_GetInfo(index - THREAD_OFFSET);
-	    return printf("SAMP Anti-cheat error: Failed to connect to website API");
+	    return printf("Whitetiger's Anti-cheat error: Failed to connect to website API");
 	}
 
 	if(strlen(data) > 1) {
@@ -293,7 +293,7 @@ public ACResponse(index, code, data[]) {
 		if(!strcmp(data, "Under Maintenance")) {
 		    printf("__________________________________________________");
 		    printf("");
-		    printf("** SAMP Anti-Cheat is current under scheduled maintenance, it cannot be enabled at this time.");
+		    printf("** Whitetiger's Anti-Cheat is current under scheduled maintenance, it cannot be enabled at this time.");
 		    printf("");
 		    printf("__________________________________________________");
 		    AC_Toggle(false);
