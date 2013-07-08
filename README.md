@@ -1,4 +1,4 @@
-SA-MP server interface for United Army Anti-Cheat.
+SA-MP server interface for Whitetiger's Anti-Cheat.
 
 1. Requires
 	* [YSI](https://github.com/Y-Less/YSI)
