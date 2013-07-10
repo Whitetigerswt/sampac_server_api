@@ -1,8 +1,8 @@
 #include <a_samp>
 
-#define _uac_PLUGINS 0
+#define _sampac_PLUGINS 0
 
-#include <unitedac_api>
+#include <sampac_api>
 
 #include <YSI\y_iterate>
 #include <YSI\y_timers>
@@ -17,7 +17,7 @@ new g_szOriginalHostname[80];
 YCMD:actoggle(playerid, params[], help) {
 
 	if(help) {
-	    return SendClientMessage(playerid, -1, ""COLOR_RED"Help: "COLOR_WHITE"This command turns on or off United Anti-Cheat");
+	    return SendClientMessage(playerid, -1, ""COLOR_RED"Help: "COLOR_WHITE"This command turns on or off Whitetiger's Anti-Cheat");
 	}
 
 	new str[128];
@@ -27,11 +27,11 @@ YCMD:actoggle(playerid, params[], help) {
 	if(AC_GetEnabled() == true) {
 	
 	    AC_Toggle(false);
-	    format(str, sizeof(str), "Admin "COLOR_RED"%s"COLOR_WHITE" Has disabled United Army Anti-Cheat", name);
+	    format(str, sizeof(str), "Admin "COLOR_RED"%s"COLOR_WHITE" Has disabled Whitetiger's Anti-Cheat", name);
 	    
 	} else {
 	    AC_Toggle(true);
-	    format(str, sizeof(str), "Admin "COLOR_RED"%s"COLOR_WHITE" Has enabled United Army Anti-Cheat", name);
+	    format(str, sizeof(str), "Admin "COLOR_RED"%s"COLOR_WHITE" Has enabled Whitetiger's Anti-Cheat", name);
 	}
 
 	SendClientMessageToAll(-1, str);
@@ -78,7 +78,7 @@ public OnACUpdated(playerid) {
     
 	if(!AC_Running(playerid))
 	{
-	    SendClientMessage(playerid, -1, ""COLOR_RED"Error: "COLOR_WHITE"You are not running the "COLOR_BLUE"United Anti-Cheat");
+	    SendClientMessage(playerid, -1, ""COLOR_RED"Error: "COLOR_WHITE"You are not running "COLOR_BLUE" Whitetiger's Anti-Cheat");
 		defer DelayedKick(playerid, 0);
 	}
 	else if(AC_HasTrainer(playerid))
@@ -88,7 +88,7 @@ public OnACUpdated(playerid) {
 	}
 	else if(AC_ASI(playerid))
 	{
-	    SendClientMessage(playerid, -1, ""COLOR_RED"Error: "COLOR_WHITE"You are using .ASI scripts that are not allowed to be used on "COLOR_BLUE"United Anti-Cheat");
+	    SendClientMessage(playerid, -1, ""COLOR_RED"Error: "COLOR_WHITE"You are using .ASI scripts that are not allowed to be used on "COLOR_BLUE"Whitetiger's Anti-Cheat");
 	    defer DelayedKick(playerid, 0);
 	}
 	
@@ -96,7 +96,7 @@ public OnACUpdated(playerid) {
 }
 
 timer DelayedKick[1000](playerid, type) {
-	if(type) BanEx(playerid, "[U] AC Ban");
+	if(type) BanEx(playerid, "AC Ban");
 	else Kick(playerid);
 }
 
