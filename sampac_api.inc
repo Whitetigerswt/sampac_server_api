@@ -43,11 +43,12 @@
 // (why is there even options for with and without plugin, anyway?)
 
 #include <YSI\y_iterate>
-#include <YSI\y_bit>
-#include <YSI\y_timers>
-#include <YSI\y_hooks>
 
-#define VERSION 1.6
+#define VERSION 1.7
+
+#if !defined AC_TIME_OFFSET
+	#define AC_TIME_OFFSET 15000
+#endif
 
 #define THREAD_OFFSET 100
 #define FILES 31
@@ -57,13 +58,13 @@
 	#define THREAD_OFFSET MAX_PLAYERS
 #endif
 
-new Timer:AC_Update;
+new AC_Update;
 
-new BitArray:ACRunning<MAX_PLAYERS>;
-new BitArray:HasASI<MAX_PLAYERS>;
-new BitArray:HasTrainer<MAX_PLAYERS>;
-new BitArray:ACOn<1>;
-new BitArray:checkedUpdate<1>;
+new bool:ACRunning[MAX_PLAYERS];
+new bool:HasASI[MAX_PLAYERS];
+new bool:HasTrainer[MAX_PLAYERS];
+new bool:ACOn;
+new bool:checkedUpdate;
 
 new bool:Files[MAX_PLAYERS][FILES];
 
@@ -106,36 +107,72 @@ new fileNames[FILES][50] = {
 };
 
 
-hook OnFilterScriptInit()
+public OnFilterScriptInit()
 {
-	if(Bit_Get(checkedUpdate, 0) == false) {
+	if(checkedUpdate == false) {
 		HTTP(THREAD_OFFSET, HTTP_GET, UPDATE_URL, "", "UpdateResponse");
-		Bit_Let(checkedUpdate, 0);
-		AC_Update = repeat AC_MainUpdate();
-		Bit_Vet(ACOn, 0);
+		checkedUpdate = true;
+		AC_Update = SetTimer("AC_MainUpdate", AC_TIME_OFFSET, 1);
+		ACOn = false;
 	}
-	return 1;
+	return CallLocalFunction("samp_ac_OnFilterScriptInit", "");
 }
 
-hook OnGameModeInit() {
-    if(Bit_Get(checkedUpdate, 0) == false) {
+#if defined _ALS_OnFilterScriptInit
+    #undef OnFilterScriptInit
+#else
+    #define _ALS_OnFilterScriptInit
+#endif
+#define OnFilterScriptInit samp_ac_OnFilterScriptInit
+
+forward samp_ac_OnFilterScriptInit();
+
+public OnGameModeInit() {
+    if(checkedUpdate == false) {
 		HTTP(THREAD_OFFSET, HTTP_GET, UPDATE_URL, "", "UpdateResponse");
-		Bit_Let(checkedUpdate, 0);
-		AC_Update = repeat AC_MainUpdate();
-		Bit_Vet(ACOn, 0);
+		checkedUpdate = true;
+		AC_Update = SetTimer("AC_MainUpdate", AC_TIME_OFFSET, 1);
+		ACOn = false;
 	}
-	return 1;
+	return CallLocalFunction("samp_ac_OnGameModeInit", "");
 }
 
-hook OnGameModeExit() {
-	stop AC_Update;
-	return 1;
+#if defined _ALS_OnGameModeInit
+    #undef OnGameModeInit
+#else
+    #define _ALS_OnGameModeInit
+#endif
+#define OnGameModeInit samp_ac_OnGameModeInit
+
+forward samp_ac_OnGameModeInit();
+
+public OnGameModeExit() {
+	KillTimer(AC_Update);
+	return CallLocalFunction("samp_ac_OnGameModeExit", "");
 }
 
-hook OnFilterScriptExit() {
-	stop AC_Update;
-	return 1;
+#if defined _ALS_OnGameModeExit
+    #undef OnGameModeExit
+#else
+    #define _ALS_OnGameModeExit
+#endif
+#define OnGameModeExit samp_ac_OnGameModeExit
+
+forward samp_ac_OnGameModeExit();
+
+public OnFilterScriptExit() {
+	KillTimer(AC_Update);
+	return CallLocalFunction("samp_ac_OnFilterScriptExit", "");
 }
+
+#if defined _ALS_OnFilterScriptExit
+    #undef OnFilterScriptExit
+#else
+    #define _ALS_OnFilterScriptExit
+#endif
+#define OnFilterScriptExit samp_ac_OnFilterScriptExit
+
+forward samp_ac_OnFilterScriptExit();
 
 
 forward UpdateResponse(index, code, data[]);
@@ -199,38 +236,57 @@ public UpdateResponse(index, code, data[]) {
 	return 1;
 }
 
-hook OnPlayerConnect(playerid)
+public OnPlayerConnect(playerid)
 {
  	//HTTP(playerid + THREAD_OFFSET + THREAD_OFFSET, HTTP_POST, BAN_URL, postdata, "BanResponse");
    	AC_GetInfo(playerid);
-   	return 1;
+   	return CallLocalFunction("samp_ac_OnPlayerConnect", "i", playerid);
 }
 
-hook OnPlayerDisconnect(playerid, reason) {
+#if defined _ALS_OnPlayerConnect
+    #undef OnPlayerConnect
+#else
+    #define _ALS_OnPlayerConnect
+#endif
+#define OnPlayerConnect samp_ac_OnPlayerConnect
 
-	Bit_Vet(ACRunning, 	playerid);
-	Bit_Vet(HasASI, 	playerid);
-	Bit_Vet(HasTrainer, playerid);
+forward samp_ac_OnPlayerConnect(playerid);
+
+public OnPlayerDisconnect(playerid, reason) {
+	
+	ACRunning[playerid] 		= false;
+	HasASI[playerid] 			= false;
+	HasTrainer[playerid] 		= false;
 
 	for(new i=0; i < FILES; ++i) {
 	    Files[playerid][i] = true;
 	}
 
-	return 1;
+	return CallLocalFunction("samp_ac_OnPlayerDisconnect", "ii", playerid, reason);
 }
 
-timer AC_MainUpdate[120000]() {
-	if(Bit_Get(ACOn, 0) == true) {
+#if defined _ALS_OnPlayerDisconnect
+    #undef OnPlayerDisconnect
+#else
+    #define _ALS_OnPlayerDisconnect
+#endif
+#define OnPlayerDisconnect samp_ac_OnPlayerDisconnect
+
+forward samp_ac_OnPlayerDisconnect(playerid, reason);
+
+forward AC_MainUpdate();
+public AC_MainUpdate() {
+	if(ACOn == true) {
 		foreach(new i : Player) {
 		    AC_GetInfo(i);
 		}
 	} else {
-		stop AC_Update;
+		KillTimer(AC_Update);
 	}
 }
 
 stock AC_GetInfo(playerid) {
-	if(Bit_Get(ACOn, 0) == true) {
+	if(ACOn == true) {
 	    new IP[MAX_PLAYER_NAME], url[128], postdata[50];
 		GetPlayerIp(playerid, IP, sizeof(IP));
 		
@@ -308,32 +364,33 @@ public ACResponse(index, code, data[]) {
 	    
 		new bool:acrunning, bool:hasasi, bool:hastrainer;
 		sscanf(data, "p< >lllA<l>(false)["#FILES"]", acrunning, hasasi, hastrainer, Files[index - THREAD_OFFSET]);
-
-		Bit_Set(ACRunning,  index - THREAD_OFFSET, acrunning);
-		Bit_Set(HasASI, 	index - THREAD_OFFSET, hasasi);
-		Bit_Set(HasTrainer, index - THREAD_OFFSET, hastrainer
-		);
-		#else
 		
+		ACRunning[index - THREAD_OFFSET] = acrunning;
+		HasASI[index - THREAD_OFFSET] = hasasi;
+		HasTrainer[index - THREAD_OFFSET] = hastrainer;
+		
+		#else
 
 		new str[35][20];
 		strexplode(str, data, ",");
-
-        Bit_Set(ACRunning,  index - THREAD_OFFSET, strcmp(str[0], "false") == 0 ? false :
-																							strcmp(str[0], "0") == 0 ? false : true );
-		Bit_Set(HasASI, 	index - THREAD_OFFSET, strcmp(str[1], "false") == 0 ? false :
-																							strcmp(str[1], "0") == 0 ? false : true );
-		Bit_Set(HasTrainer, index - THREAD_OFFSET, strcmp(str[2], "false") == 0 ? false :
-																							strcmp(str[2], "0") == 0 ? false : true );
+		
+		ACRunning[index - THREAD_OFFSET] 			= strcmp(str[0], "false") == 0 ? false : strcmp(str[0], "0") == 0 ? false : true;
+		HasASI[index - THREAD_OFFSET] 				= strcmp(str[1], "false") == 0 ? false : strcmp(str[1], "0") == 0 ? false : true;
+		HasTrainer[index - THREAD_OFFSET] 			= strcmp(str[2], "false") == 0 ? false : strcmp(str[2], "0") == 0 ? false : true;
 
 		for(new i=0; i < FILES; ++i) {
-			Files[index - THREAD_OFFSET][i] = strcmp(str[i+3], "false") == 0 ? false : strcmp(str[i+3], "0") == 0 ? false : true;
+		    if(!strcmp(str[i+3], "0")) { // prevent anim/ped.ifp false kicks
+				ACRunning[index - THREAD_OFFSET] 	= true;
+				Files[index - THREAD_OFFSET][i] 	= true;
+				continue;
+			}
+			Files[index - THREAD_OFFSET][i] 		= strcmp(str[i+3], "false") == 0 ? false : true;
 		}
 		#endif
 
 
 	} else {
-		Bit_Vet(ACRunning, index - THREAD_OFFSET);
+	    ACRunning[index - THREAD_OFFSET] 			= false;
 	}
 
 	// check if they're still connected when the HTTP thread finished.
@@ -342,7 +399,7 @@ public ACResponse(index, code, data[]) {
 
 		
 		for(new i=0; i < FILES; ++i) {
-			if(Files[index - THREAD_OFFSET][i] == false && Bit_Get(ACRunning, index - THREAD_OFFSET) == true) {
+			if(Files[index - THREAD_OFFSET][i] == false && ACRunning[index - THREAD_OFFSET] == true) {
 			    // check if player is connected again (yes, in the loop), in case they got kicked or banned when OnACUpdated got called.
 			    if(IsPlayerConnected(index - THREAD_OFFSET)) {
 			    	CallLocalFunction("OnACFileModified", "ds", index - THREAD_OFFSET, fileNames[i]);
@@ -353,25 +410,19 @@ public ACResponse(index, code, data[]) {
 	return 0;
 }
 
-// for some reason this function doesn't get called in other scripts when this include is included in any script
-// something to do with YSI compatability since removing YSI fixes the problem.
-// just hook it and do nothing and it will work again.
-
-hook OnPlayerClickTextDraw(playerid, Text:clickedid) { }
-
-#define AC_Running(%0) Bit_Get(ACRunning, %0)
-#define AC_HasTrainer(%0) Bit_Get(HasTrainer, %0)
-#define AC_ASI(%0) Bit_Get(HasASI, %0)
-#define AC_GetEnabled() Bit_Get(ACOn, 0)
+#define AC_Running(%0) ACRunning[%0]
+#define AC_HasTrainer(%0) HasTrainer[%0]
+#define AC_ASI(%0) HasASI[%0]
+#define AC_GetEnabled() ACOn
 
 stock bool:AC_Toggle(bool:set) {
-	Bit_Set(ACOn, 0, set);
+	ACOn = set;
 
 	if(set) {
 	    AC_MainUpdate();
-	    AC_Update = repeat AC_MainUpdate();
+	    AC_Update = SetTimer("AC_MainUpdate", AC_TIME_OFFSET, 1);
 	} else {
-		stop AC_Update;
+		KillTimer(AC_Update);
 	}
 	
 	CallLocalFunction("OnACToggled", "d", set);
