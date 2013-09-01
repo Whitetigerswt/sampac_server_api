@@ -367,12 +367,12 @@ public BanResponse(index, code, data[]) {
 	    SendClientMessageToAll(-1, str);
 	}
 	return 1;
-}*/
+}
 
 forward KickPlayer(playerid);
 public KickPlayer(playerid) {
 	Kick(playerid);
-}
+}*/
 
 forward ACResponse(index, code, data[]);
 public ACResponse(index, code, data[]) {
