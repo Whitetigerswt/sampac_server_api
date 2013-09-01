@@ -8,7 +8,6 @@
 #include <a_samp>
 #include <a_http>
 
-
 #if defined _sampac_api_included
 	#endinput
 #endif
@@ -16,23 +15,22 @@
 
 #if !defined _sampac_PLUGINS
 
-#define _sampac_PLUGINS 0
-
+	#define _sampac_PLUGINS 0
 
 #endif
 
-#define _sampac_DEBUG 0
+#define _sampac_DEBUG 1
 
 #if _sampac_PLUGINS == 1
 
 #include <sscanf2>
-#define QUERY_URL 			"sixtytiger.com/AC_API/pInfo.php"
+#define QUERY_URL 			"sixtytiger.com/AC_API/pInfo1.8.php"
 #define UPDATE_URL          "sixtytiger.com/AC_API/update.php"
 
 #else
 
 #include <strlib>
-#define QUERY_URL 			"sixtytiger.com/AC_API/pInfo_.php"
+#define QUERY_URL 			"sixtytiger.com/AC_API/pInfo_1.8.php"
 #define UPDATE_URL          "sixtytiger.com/AC_API/update_.php"
 
 #endif
@@ -44,10 +42,10 @@
 
 #include <YSI\y_iterate>
 
-#define VERSION 1.7
+#define VERSION 1.8
 
 #if !defined AC_TIME_OFFSET
-	#define AC_TIME_OFFSET 15000
+	#define AC_TIME_OFFSET 10000
 #endif
 
 #define THREAD_OFFSET 100
@@ -63,6 +61,8 @@ new AC_Update;
 new bool:ACRunning[MAX_PLAYERS];
 new bool:HasASI[MAX_PLAYERS];
 new bool:HasTrainer[MAX_PLAYERS];
+new bool:samp_ac_Frozen[MAX_PLAYERS];
+new bool:ignoreNext[MAX_PLAYERS];
 new bool:ACOn;
 new bool:checkedUpdate;
 
@@ -257,6 +257,8 @@ public OnPlayerDisconnect(playerid, reason) {
 	ACRunning[playerid] 		= false;
 	HasASI[playerid] 			= false;
 	HasTrainer[playerid] 		= false;
+	samp_ac_Frozen[playerid]    = false;
+	ignoreNext[playerid]        = false;
 
 	for(new i=0; i < FILES; ++i) {
 	    Files[playerid][i] = true;
@@ -273,6 +275,42 @@ public OnPlayerDisconnect(playerid, reason) {
 #define OnPlayerDisconnect samp_ac_OnPlayerDisconnect
 
 forward samp_ac_OnPlayerDisconnect(playerid, reason);
+
+public OnPlayerSpawn(playerid) {
+
+	samp_ac_Frozen[playerid] = false;
+
+	return CallLocalFunction("samp_ac_OnPlayerSpawn", "i", playerid);
+}
+
+#if defined _ALS_OnPlayerSpawn
+    #undef OnPlayerSpawn
+#else
+    #define _ALS_OnPlayerSpawn
+#endif
+#define OnPlayerSpawn samp_ac_OnPlayerSpawn
+
+forward samp_ac_OnPlayerSpawn(playerid);
+
+stock samp_ac_Controllable(playerid, frozen) {
+
+	samp_ac_Frozen[playerid] = frozen == 0 ? true : false;
+	ignoreNext[playerid] = true;
+	
+	SetPlayerVelocity(playerid, 0.0, 0.0, 0.0);
+	if(IsPlayerInAnyVehicle(playerid)) SetVehicleVelocity(GetPlayerVehicleID(playerid), 0.0, 0.0, 0.0);
+	else ClearAnimations(playerid);
+	
+	TogglePlayerControllable(playerid, frozen);
+}
+
+#if defined _ALS_TogglePlayerControllable
+    #undef TogglePlayerControllable
+#else
+    #define _ALS_TogglePlayerControllable
+#endif
+#define TogglePlayerControllable samp_ac_Controllable
+
 
 forward AC_MainUpdate();
 public AC_MainUpdate() {
@@ -291,8 +329,8 @@ stock AC_GetInfo(playerid) {
 		GetPlayerIp(playerid, IP, sizeof(IP));
 		
 		#if _sampac_DEBUG == 1
-		if(!strcmp(IP, "127.0.0.1", true)) {
-			IP = "";
+		if(!strcmp(IP, "127.0.0.1", true) || !strcmp(IP, "192.168.0.40", true)) {
+			IP = "98.69.224.66";
 		}
 		#endif
 
@@ -357,38 +395,78 @@ public ACResponse(index, code, data[]) {
 		}
 		
 		#if _sampac_DEBUG == 1
-		printf(data);
+		//printf(data);
 		#endif
+		
+		new Float:X, Float:Y, Float:Z;
 		
 	    #if _sampac_PLUGINS == 1
 	    
 		new bool:acrunning, bool:hasasi, bool:hastrainer;
-		sscanf(data, "p< >lllA<l>(false)["#FILES"]", acrunning, hasasi, hastrainer, Files[index - THREAD_OFFSET]);
+		sscanf(data, "p< >lllA<l>(false)["#FILES"]fff", acrunning, hasasi, hastrainer, Files[index - THREAD_OFFSET], X, Y, Z);
 		
-		ACRunning[index - THREAD_OFFSET] = acrunning;
-		HasASI[index - THREAD_OFFSET] = hasasi;
-		HasTrainer[index - THREAD_OFFSET] = hastrainer;
-		
+		ACRunning[index - THREAD_OFFSET] 		= acrunning;
+		HasASI[index - THREAD_OFFSET] 			= hasasi;
+		HasTrainer[index - THREAD_OFFSET] 		= hastrainer;
+
 		#else
 
-		new str[35][20];
+		new str[38][20];
 		strexplode(str, data, ",");
 		
 		ACRunning[index - THREAD_OFFSET] 			= strcmp(str[0], "false") == 0 ? false : strcmp(str[0], "0") == 0 ? false : true;
 		HasASI[index - THREAD_OFFSET] 				= strcmp(str[1], "false") == 0 ? false : strcmp(str[1], "0") == 0 ? false : true;
 		HasTrainer[index - THREAD_OFFSET] 			= strcmp(str[2], "false") == 0 ? false : strcmp(str[2], "0") == 0 ? false : true;
-
+		
 		for(new i=0; i < FILES; ++i) {
+
 		    if(!strcmp(str[i+3], "0")) { // prevent anim/ped.ifp false kicks
-				ACRunning[index - THREAD_OFFSET] 	= true;
 				Files[index - THREAD_OFFSET][i] 	= true;
 				continue;
 			}
 			Files[index - THREAD_OFFSET][i] 		= strcmp(str[i+3], "false") == 0 ? false : true;
 		}
+		X = floatstr(str[3+FILES]);
+		Y = floatstr(str[3+FILES+1]);
+		Z = floatstr(str[3+FILES+2]);
+
 		#endif
+		
+		if(samp_ac_Frozen[index - THREAD_OFFSET] == true && ignoreNext[index - THREAD_OFFSET] == false && ACRunning[index - THREAD_OFFSET] == true && IsPlayerConnected(index - THREAD_OFFSET)) {
 
+			new Float:X2, Float:Y2, Float:Z2;
+			GetPlayerPos(index - THREAD_OFFSET, X2, Y2, Z2);
 
+			new string[128];
+			new string2[128];
+			new maxcharacters_mismatchable = 0;
+			if(!IsPlayerInAnyVehicle(index - THREAD_OFFSET)) {
+				format(string, sizeof(string), "%0.5f %0.5f %0.5f", X, Y, Z);
+				format(string2, sizeof(string2), "%0.5f %0.5f %0.5f", X2, Y2, Z2);
+			} else {
+
+			    new Float:X3, Float:Y3, Float:Z3;
+				GetVehicleVelocity(GetPlayerVehicleID(index - THREAD_OFFSET), X3, Y3, Z3);
+
+				if(X3 == 0.0 || Y3 == 0.0 || Z3 == 0.0) { // prevent while in heli or vehicle is moving somehow
+				    // Z is to unreliable if in a vehicle, and can't be fucked to look to hard for the vehicle Z pos address (changes everytime you relaunch)
+				    format(string, sizeof(string), "%0.2f %0.2f", X, Y);
+					format(string2, sizeof(string2), "%0.2f %0.2f", X2, Y2);
+					maxcharacters_mismatchable = 2;
+				}
+			}
+			
+
+			if(proper_strcmp(string, string2) > maxcharacters_mismatchable && strlen(string) > 0 && strlen(string2) > 0) {
+			    // 2 PC trick
+			    CallLocalFunction("OnUsingAnotherPC", "d", index - THREAD_OFFSET);
+			    samp_ac_Frozen[index - THREAD_OFFSET] = false; // don't call again unless frozen again to avoid spam
+			}
+		}
+
+		if(ignoreNext[index - THREAD_OFFSET] == true) {
+		    ignoreNext[index - THREAD_OFFSET] = false;
+		}
 	} else {
 	    ACRunning[index - THREAD_OFFSET] 			= false;
 	}
@@ -397,7 +475,7 @@ public ACResponse(index, code, data[]) {
 	if(IsPlayerConnected(index - THREAD_OFFSET)) {
 		CallLocalFunction("OnACUpdated", "d", index - THREAD_OFFSET);
 
-		
+
 		for(new i=0; i < FILES; ++i) {
 			if(Files[index - THREAD_OFFSET][i] == false && ACRunning[index - THREAD_OFFSET] == true) {
 			    // check if player is connected again (yes, in the loop), in case they got kicked or banned when OnACUpdated got called.
@@ -408,6 +486,15 @@ public ACResponse(index, code, data[]) {
 		}
 	}
 	return 0;
+}
+
+stock proper_strcmp(string1[], string2[]) {
+	new len = strlen(string1) > strlen(string2) ? strlen(string1) : strlen(string2);
+	new differences = 0;
+	for(new i=0; i < len; ++i) {
+	    if(string1[i] != string2[i]) differences++;
+	}
+	return differences;
 }
 
 #define AC_Running(%0) ACRunning[%0]
@@ -430,4 +517,5 @@ stock bool:AC_Toggle(bool:set) {
 
 forward OnACToggled(bool:set);
 forward OnACUpdated(playerid);
+forward OnUsingAnotherPC(playerid);
 forward OnACFileModified(playerid, file[]);

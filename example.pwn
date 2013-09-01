@@ -125,3 +125,13 @@ public OnACToggled(bool:set) {
 	
 	SendRconCommand(result);
 }
+
+public OnUsingAnotherPC(playerid)
+{
+    new str2[128], name[MAX_PLAYER_NAME];
+	GetPlayerName(playerid, name, sizeof(name));
+    format(str2, sizeof(str2), "{3377FF}** Whitetiger's AC: {FFFFFF}%s{3377FF} might be using the 2 PC trick.", name);
+    SendClientMessageToAll(-1, str2);
+
+    return 1;
+}
