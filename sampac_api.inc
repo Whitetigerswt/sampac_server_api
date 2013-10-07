@@ -19,7 +19,13 @@
 
 #endif
 
-#define _sampac_DEBUG 1
+#if !defined _sampac_TIMERMODE
+
+	#define _sampac_TIMERMODE 1
+
+#endif
+
+#define _sampac_DEBUG 0
 
 #if _sampac_PLUGINS == 1
 
@@ -42,10 +48,10 @@
 
 #include <YSI\y_iterate>
 
-#define VERSION 1.8
+#define VERSION 1.9
 
 #if !defined AC_TIME_OFFSET
-	#define AC_TIME_OFFSET 10000
+	#define AC_TIME_OFFSET 30000
 #endif
 
 #define THREAD_OFFSET 100
@@ -65,6 +71,9 @@ new bool:samp_ac_Frozen[MAX_PLAYERS];
 new bool:ignoreNext[MAX_PLAYERS];
 new bool:ACOn;
 new bool:checkedUpdate;
+#if _sampac_TIMERMODE == 1
+new ac_Timers[MAX_PLAYERS];
+#endif
 
 new bool:Files[MAX_PLAYERS][FILES];
 
@@ -239,7 +248,12 @@ public UpdateResponse(index, code, data[]) {
 public OnPlayerConnect(playerid)
 {
  	//HTTP(playerid + THREAD_OFFSET + THREAD_OFFSET, HTTP_POST, BAN_URL, postdata, "BanResponse");
-   	AC_GetInfo(playerid);
+   	if(ACOn == true) {
+		AC_GetInfo(playerid);
+		#if _sampac_TIMERMODE == 1
+		ac_Timers[playerid] = SetTimerEx("AC_GetInfoTimer", AC_TIME_OFFSET, 0, "d", playerid);
+		#endif
+	}
    	return CallLocalFunction("samp_ac_OnPlayerConnect", "i", playerid);
 }
 
@@ -263,6 +277,9 @@ public OnPlayerDisconnect(playerid, reason) {
 	for(new i=0; i < FILES; ++i) {
 	    Files[playerid][i] = true;
 	}
+	
+	KillTimer(ac_Timers[playerid]);
+	ac_Timers[playerid] = -1;
 
 	return CallLocalFunction("samp_ac_OnPlayerDisconnect", "ii", playerid, reason);
 }
@@ -311,7 +328,7 @@ stock samp_ac_Controllable(playerid, frozen) {
 #endif
 #define TogglePlayerControllable samp_ac_Controllable
 
-
+#if _sampac_TIMERMODE == 0
 forward AC_MainUpdate();
 public AC_MainUpdate() {
 	if(ACOn == true) {
@@ -323,21 +340,34 @@ public AC_MainUpdate() {
 	}
 }
 
-stock AC_GetInfo(playerid) {
+#else
+forward AC_GetInfoTimer(playerid);
+public AC_GetInfoTimer(playerid) {
+	if(!IsPlayerConnected(playerid)) return 1;
+	
 	if(ACOn == true) {
-	    new IP[MAX_PLAYER_NAME], url[128], postdata[50];
-		GetPlayerIp(playerid, IP, sizeof(IP));
-		
-		#if _sampac_DEBUG == 1
-		if(!strcmp(IP, "127.0.0.1", true) || !strcmp(IP, "192.168.0.40", true)) {
-			IP = "98.69.224.66";
-		}
-		#endif
-
-	 	format(url, sizeof(url), QUERY_URL);
-	 	format(postdata, sizeof(postdata), "IP=%s", IP);
-		HTTP(playerid + THREAD_OFFSET, HTTP_POST, url, postdata, "ACResponse");
+	    AC_GetInfo(playerid);
+		ac_Timers[playerid] = SetTimerEx("AC_GetInfoTimer", AC_TIME_OFFSET, 0, "d", playerid);
 	}
+	return 1;
+}
+#endif
+
+stock AC_GetInfo(playerid) {
+
+    new IP[MAX_PLAYER_NAME], url[128], postdata[50];
+	GetPlayerIp(playerid, IP, sizeof(IP));
+	
+	#if _sampac_DEBUG == 1
+	if(!strcmp(IP, "127.0.0.1", true) || !strcmp(IP, "192.168.0.40", true)) {
+		IP = "";
+	}
+	#endif
+
+ 	format(url, sizeof(url), QUERY_URL);
+ 	format(postdata, sizeof(postdata), "IP=%s", IP);
+	HTTP(playerid + THREAD_OFFSET, HTTP_POST, url, postdata, "ACResponse");
+	
 	return 1;
 }
 
@@ -376,9 +406,9 @@ public KickPlayer(playerid) {
 
 forward ACResponse(index, code, data[]);
 public ACResponse(index, code, data[]) {
-    if(code != 200) {
+    if(code != 200 && ACOn) {
         // try again?
-        AC_GetInfo(index - THREAD_OFFSET);
+        //AC_GetInfo(index - THREAD_OFFSET);
 	    return printf("Whitetiger's Anti-cheat error: Failed to connect to website API");
 	}
 
@@ -432,14 +462,14 @@ public ACResponse(index, code, data[]) {
 
 		#endif
 		
-		if(samp_ac_Frozen[index - THREAD_OFFSET] == true && ignoreNext[index - THREAD_OFFSET] == false && ACRunning[index - THREAD_OFFSET] == true && IsPlayerConnected(index - THREAD_OFFSET)) {
+		if(samp_ac_Frozen[index - THREAD_OFFSET] == true && ignoreNext[index - THREAD_OFFSET] == false && ACRunning[index - THREAD_OFFSET] == true && IsPlayerConnected(index - THREAD_OFFSET) && OnPlayerUpdate(index - THREAD_OFFSET) != 0) {
 
 			new Float:X2, Float:Y2, Float:Z2;
 			GetPlayerPos(index - THREAD_OFFSET, X2, Y2, Z2);
 
 			new string[128];
 			new string2[128];
-			new maxcharacters_mismatchable = 0;
+			new maxcharacters_mismatchable = 1;
 			if(!IsPlayerInAnyVehicle(index - THREAD_OFFSET)) {
 				format(string, sizeof(string), "%0.5f %0.5f %0.5f", X, Y, Z);
 				format(string2, sizeof(string2), "%0.5f %0.5f %0.5f", X2, Y2, Z2);
@@ -452,7 +482,7 @@ public ACResponse(index, code, data[]) {
 				    // Z is to unreliable if in a vehicle, and can't be fucked to look to hard for the vehicle Z pos address (changes everytime you relaunch)
 				    format(string, sizeof(string), "%0.2f %0.2f", X, Y);
 					format(string2, sizeof(string2), "%0.2f %0.2f", X2, Y2);
-					maxcharacters_mismatchable = 2;
+					maxcharacters_mismatchable = 3;
 				}
 			}
 			
@@ -506,10 +536,25 @@ stock bool:AC_Toggle(bool:set) {
 	ACOn = set;
 
 	if(set) {
+		#if _sampac_TIMERMODE == 0
 	    AC_MainUpdate();
 	    AC_Update = SetTimer("AC_MainUpdate", AC_TIME_OFFSET, 1);
+	    #else
+	    foreach(new i : Player) {
+	        ac_Timers[i] = SetTimerEx("AC_GetInfoTimer", AC_TIME_OFFSET, 0, "d", i);
+	    }
+	    #endif
 	} else {
+	    #if _sampac_TIMERMODE == 0
 		KillTimer(AC_Update);
+		#else
+		/*foreach(new i : Player) {
+		    ac_Timers[i] = SetTimerEx("AC_GetInfoTimer", AC_TIME_OFFSET, 0, "d", i);
+		}*/
+		for(new i=0; i < MAX_PLAYERS; ++i) {
+		    KillTimer(ac_Timers[i]);
+		}
+		#endif
 	}
 	
 	CallLocalFunction("OnACToggled", "d", set);
