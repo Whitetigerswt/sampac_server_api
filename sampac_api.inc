@@ -59,7 +59,7 @@ new AC_TIME_OFFSET = 30000;
 	#undef THREAD_OFFSET
 	#define THREAD_OFFSET MAX_PLAYERS
 #endif
-
+//
 new AC_Update;
 
 new bool:ACRunning[MAX_PLAYERS];
