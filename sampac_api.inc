@@ -4,7 +4,6 @@
 
 */
 
-
 #include <a_samp>
 #include <a_http>
 
@@ -21,7 +20,7 @@
 
 #if !defined _sampac_TIMERMODE
 
-	#define _sampac_TIMERMODE 1
+	#define _sampac_TIMERMODE 0
 
 #endif
 
@@ -38,6 +37,7 @@
 #include <strlib>
 #define QUERY_URL 			"sixtytiger.com/AC_API/pInfo_1.8.php"
 #define UPDATE_URL          "sixtytiger.com/AC_API/update_.php"
+#define ALL_QUERY_URL       "sixtytiger.com/AC_API/allpInfo.php"
 
 #endif
 
@@ -48,11 +48,9 @@
 
 #include <YSI\y_iterate>
 
-#define VERSION 1.9
+#define VERSION 2.0
 
-#if !defined AC_TIME_OFFSET
-	#define AC_TIME_OFFSET 30000
-#endif
+new AC_TIME_OFFSET = 30000;
 
 #define THREAD_OFFSET 100
 #define FILES 31
@@ -71,6 +69,7 @@ new bool:samp_ac_Frozen[MAX_PLAYERS];
 new bool:ignoreNext[MAX_PLAYERS];
 new bool:ACOn;
 new bool:checkedUpdate;
+
 #if _sampac_TIMERMODE == 1
 new ac_Timers[MAX_PLAYERS];
 #endif
@@ -187,7 +186,7 @@ forward samp_ac_OnFilterScriptExit();
 forward UpdateResponse(index, code, data[]);
 public UpdateResponse(index, code, data[]) {
     if(code != 200) {
-        HTTP(THREAD_OFFSET, HTTP_GET, UPDATE_URL, "", "UpdateResponse");
+        //HTTP(THREAD_OFFSET, HTTP_GET, UPDATE_URL, "", "UpdateResponse");
 	    return printf("Whitetiger's Anti-cheat error: Failed to connect to website API");
 	}
 	#pragma unused index
@@ -242,14 +241,16 @@ public UpdateResponse(index, code, data[]) {
 	    printf("");
 	    printf("__________________________________________________");
 	}
+	
+	HTTP(THREAD_OFFSET + THREAD_OFFSET, HTTP_GET, "sixtytiger.com/AC_API/query_bug_thread_wait.php", "", "ThreadWaitTime");
 	return 1;
 }
 
-public OnPlayerConnect(playerid)
+/*public OnPlayerConnect(playerid)
 {
  	//HTTP(playerid + THREAD_OFFSET + THREAD_OFFSET, HTTP_POST, BAN_URL, postdata, "BanResponse");
    	if(ACOn == true) {
-		AC_GetInfo(playerid);
+		//AC_GetInfo(playerid);
 		#if _sampac_TIMERMODE == 1
 		ac_Timers[playerid] = SetTimerEx("AC_GetInfoTimer", AC_TIME_OFFSET, 0, "d", playerid);
 		#endif
@@ -264,7 +265,7 @@ public OnPlayerConnect(playerid)
 #endif
 #define OnPlayerConnect samp_ac_OnPlayerConnect
 
-forward samp_ac_OnPlayerConnect(playerid);
+forward samp_ac_OnPlayerConnect(playerid);*/
 
 public OnPlayerDisconnect(playerid, reason) {
 	
@@ -278,8 +279,10 @@ public OnPlayerDisconnect(playerid, reason) {
 	    Files[playerid][i] = true;
 	}
 	
+	#if _sampac_TIMERMODE == 1
 	KillTimer(ac_Timers[playerid]);
 	ac_Timers[playerid] = -1;
+	#endif
 
 	return CallLocalFunction("samp_ac_OnPlayerDisconnect", "ii", playerid, reason);
 }
@@ -332,9 +335,7 @@ stock samp_ac_Controllable(playerid, frozen) {
 forward AC_MainUpdate();
 public AC_MainUpdate() {
 	if(ACOn == true) {
-		foreach(new i : Player) {
-		    AC_GetInfo(i);
-		}
+		AC_GetAllInfo();
 	} else {
 		KillTimer(AC_Update);
 	}
@@ -345,11 +346,18 @@ forward AC_GetInfoTimer(playerid);
 public AC_GetInfoTimer(playerid) {
 	if(!IsPlayerConnected(playerid)) return 1;
 	
-	if(ACOn == true) {
-	    AC_GetInfo(playerid);
-		ac_Timers[playerid] = SetTimerEx("AC_GetInfoTimer", AC_TIME_OFFSET, 0, "d", playerid);
-	}
+    AC_GetInfo(playerid);
+	ac_Timers[playerid] = SetTimerEx("AC_GetInfoTimer", AC_TIME_OFFSET, 0, "d", playerid);
+		
 	return 1;
+}
+
+stock AC_EnableForPlayer(playerid) {
+	ac_Timers[playerid] = SetTimerEx("AC_GetInfoTimer", AC_TIME_OFFSET, 0, "d", playerid);
+}
+
+stock AC_DisableForPlayer(playerid) {
+	KillTimer(ac_Timers[playerid]);
 }
 #endif
 
@@ -359,7 +367,7 @@ stock AC_GetInfo(playerid) {
 	GetPlayerIp(playerid, IP, sizeof(IP));
 	
 	#if _sampac_DEBUG == 1
-	if(!strcmp(IP, "127.0.0.1", true) || !strcmp(IP, "192.168.0.40", true)) {
+	if(!strcmp(IP, "127.0.0.1", true) || !strcmp(IP, "192.168.1.67", true)) {
 		IP = "";
 	}
 	#endif
@@ -369,6 +377,26 @@ stock AC_GetInfo(playerid) {
 	HTTP(playerid + THREAD_OFFSET, HTTP_POST, url, postdata, "ACResponse");
 	
 	return 1;
+}
+
+stock AC_GetAllInfo() {
+	new IP[MAX_PLAYER_NAME], postdata[1000];
+	
+	for(new i=0; i < MAX_PLAYERS; ++i) {
+	    if(!IsPlayerConnected(i)) continue;
+		GetPlayerIp(i, IP, sizeof(IP));
+
+		#if _sampac_DEBUG == 1
+		if(!strcmp(IP, "127.0.0.1", true) || !strcmp(IP, "192.168.1.67", true)) {
+			IP = "";
+		}
+		#endif
+		
+		if(strlen(postdata) > 0) format(postdata, sizeof(postdata), "%s&IP%d=%s", postdata, i, IP);
+		else format(postdata, sizeof(postdata), "IP%d=%s", i, IP);
+	}
+
+	HTTP(THREAD_OFFSET, HTTP_POST, ALL_QUERY_URL, postdata, "AllACResponse");
 }
 
 /*forward BanResponse(index, code, data[]);
@@ -479,7 +507,7 @@ public ACResponse(index, code, data[]) {
 				GetVehicleVelocity(GetPlayerVehicleID(index - THREAD_OFFSET), X3, Y3, Z3);
 
 				if(X3 == 0.0 || Y3 == 0.0 || Z3 == 0.0) { // prevent while in heli or vehicle is moving somehow
-				    // Z is to unreliable if in a vehicle, and can't be fucked to look to hard for the vehicle Z pos address (changes everytime you relaunch)
+
 				    format(string, sizeof(string), "%0.2f %0.2f", X, Y);
 					format(string2, sizeof(string2), "%0.2f %0.2f", X2, Y2);
 					maxcharacters_mismatchable = 3;
@@ -516,6 +544,22 @@ public ACResponse(index, code, data[]) {
 		}
 	}
 	return 0;
+}
+
+forward AllACResponse(index, code, data[]);
+public AllACResponse(index, code, data[]) {
+	new idx = strfind(data, "|"), lastidx = -1, strOut[256], playerid;
+	do {
+		strmid(strOut, data, lastidx + 1, idx);
+		lastidx = idx;
+		new str[2];
+		strmid(str, strOut, 0, 1);
+		playerid = strval(str);
+		idx = strfind(data, "|", false, lastidx+1);
+		if(!IsPlayerConnected(playerid)) continue;
+		strdel(strOut, 0, 3);
+		ACResponse(index + playerid, code, strOut);
+	} while(idx != -1);
 }
 
 stock proper_strcmp(string1[], string2[]) {
@@ -558,6 +602,18 @@ stock bool:AC_Toggle(bool:set) {
 	}
 	
 	CallLocalFunction("OnACToggled", "d", set);
+}
+
+forward ThreadWaitTime(index, code, data[]);
+public ThreadWaitTime(index, code, data[]) {
+
+    for (new i = 0, j = strlen(data); i < j; i++)
+    {
+        if (data[i] > '9' || data[i] < '0') return 0;
+    }
+    
+    AC_TIME_OFFSET = strval(data) + 2500;
+	return 1;
 }
 
 forward OnACToggled(bool:set);
