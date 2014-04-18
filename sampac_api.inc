@@ -246,14 +246,13 @@ public UpdateResponse(index, code, data[]) {
 	return 1;
 }
 
-/*public OnPlayerConnect(playerid)
+#if _sampac_TIMERMODE == 1
+public OnPlayerConnect(playerid)
 {
  	//HTTP(playerid + THREAD_OFFSET + THREAD_OFFSET, HTTP_POST, BAN_URL, postdata, "BanResponse");
    	if(ACOn == true) {
 		//AC_GetInfo(playerid);
-		#if _sampac_TIMERMODE == 1
 		ac_Timers[playerid] = SetTimerEx("AC_GetInfoTimer", AC_TIME_OFFSET, 0, "d", playerid);
-		#endif
 	}
    	return CallLocalFunction("samp_ac_OnPlayerConnect", "i", playerid);
 }
@@ -265,7 +264,8 @@ public UpdateResponse(index, code, data[]) {
 #endif
 #define OnPlayerConnect samp_ac_OnPlayerConnect
 
-forward samp_ac_OnPlayerConnect(playerid);*/
+forward samp_ac_OnPlayerConnect(playerid);
+#endif
 
 public OnPlayerDisconnect(playerid, reason) {
 	
