@@ -369,7 +369,7 @@ stock AC_GetInfo(playerid) {
 	GetPlayerIp(playerid, IP, sizeof(IP));
 
 	#if _sampac_DEBUG == 1
-	if(!strcmp(IP, "127.0.0.1", true) || !strcmp(IP, "192.168.1.67", true)) {
+	if(!strcmp(IP, "127.0.0.1", true)) {
 		IP = "";
 	}
 	#endif
@@ -384,12 +384,11 @@ stock AC_GetInfo(playerid) {
 stock AC_GetAllInfo() {
 	new IP[MAX_PLAYER_NAME], postdata[256];
 
-	for(new i=0; i < MAX_PLAYERS; ++i) {
-	    if(!IsPlayerConnected(i)) continue;
+	foreach(new i : Player) {
 		GetPlayerIp(i, IP, sizeof(IP));
 
 		#if _sampac_DEBUG == 1
-		if(!strcmp(IP, "127.0.0.1", true) || !strcmp(IP, "192.168.1.67", true)) {
+		if(!strcmp(IP, "127.0.0.1", true)) {
 			IP = "";
 		}
 		#endif
@@ -399,10 +398,10 @@ stock AC_GetAllInfo() {
 
 		if(i % 5 == 0) {
 		    HTTP(THREAD_OFFSET, HTTP_POST, ALL_QUERY_URL, postdata, "AllACResponse");
-		    postdata = "";
+		    postdata[0] = '\0';
 		}
 	}
-	if(strlen(postdata) > 0) {
+	if(postdata[0] != '\0') {
 	    HTTP(THREAD_OFFSET, HTTP_POST, ALL_QUERY_URL, postdata, "AllACResponse");
 	}
 }
@@ -447,6 +446,9 @@ public ACResponse(index, code, data[]) {
         //AC_GetInfo(index - THREAD_OFFSET);
 	    return printf("Whitetiger's Anti-cheat error: Failed to connect to website API");
 	}
+	
+	new playerid = index - THREAD_OFFSET;
+	new fileid, Float:X, Float:Y, Float:Z;
 
 	if(strlen(data) > 1) {
 
@@ -464,34 +466,30 @@ public ACResponse(index, code, data[]) {
 		printf(data);
 		#endif
 
-		new Float:X, Float:Y, Float:Z;
-
-		new fileid;
-
 	    #if _sampac_PLUGINS == 1
 
-		sscanf(data, "p< >ddddfff", ACRunning[index - THREAD_OFFSET], HasASI[index - THREAD_OFFSET] , HasTrainer[index - THREAD_OFFSET], fileid, X, Y, Z);
+		sscanf(data, "p< >ddddfff", ACRunning[playerid], HasASI[playerid] , HasTrainer[playerid], fileid, X, Y, Z);
 
 		#else
 
-		new str[38][20];
+		new str[7][20];
 		strexplode(str, data, ",");
 
-		ACRunning[index - THREAD_OFFSET] 			= strcmp(str[0], "false") == 0 ? false : strcmp(str[0], "0") == 0 ? false : true;
+		ACRunning[playerid] 			= strcmp(str[0], "false") == 0 ? false : strcmp(str[0], "0") == 0 ? false : true;
 
 		if(ACRunning[index - THREAD_OFFSET] == false) {
-		    CallLocalFunction("OnACUpdated", "d", index - THREAD_OFFSET);
+		    CallLocalFunction("OnACUpdated", "d", playerid);
 
-			printf("FIRST CHECK!!! Called On AC Updated. on %d", index - THREAD_OFFSET);
-			printf("Results: ACRunning(): %d", ACRunning[index - THREAD_OFFSET]);
-			printf("Trainer: %d", HasTrainer[index - THREAD_OFFSET]);
-			printf("ASI: %d", HasASI[index - THREAD_OFFSET]);
+			printf("FIRST CHECK!!! Called On AC Updated. on %d", playerid);
+			printf("Results: ACRunning(): %d", ACRunning[playerid]);
+			printf("Trainer: %d", HasTrainer[playerid]);
+			printf("ASI: %d", HasASI[playerid]);
 
 			return 1;
 		}
 
-		HasASI[index - THREAD_OFFSET] 				= strcmp(str[1], "false") == 0 ? false : strcmp(str[1], "0") == 0 ? false : true;
-		HasTrainer[index - THREAD_OFFSET] 			= strcmp(str[2], "false") == 0 ? false : strcmp(str[2], "0") == 0 ? false : true;
+		HasASI[playerid] 				= strcmp(str[1], "false") == 0 ? false : strcmp(str[1], "0") == 0 ? false : true;
+		HasTrainer[playerid] 			= strcmp(str[2], "false") == 0 ? false : strcmp(str[2], "0") == 0 ? false : true;
 
 		/*for(new i=0; i < FILES; ++i) {
 
@@ -507,24 +505,23 @@ public ACResponse(index, code, data[]) {
 		Y = floatstr(str[5]);
 		Z = floatstr(str[6]);
 
-
 		#endif
 
-		if(samp_ac_Frozen[index - THREAD_OFFSET] == true && ignoreNext[index - THREAD_OFFSET] == false && ACRunning[index - THREAD_OFFSET] == true && IsPlayerConnected(index - THREAD_OFFSET) && OnPlayerUpdate(index - THREAD_OFFSET) != 0) {
+		if(samp_ac_Frozen[playerid] == true && ignoreNext[playerid] == false && ACRunning[playerid] == true && IsPlayerConnected(playerid) && CallLocalFunction("OnPlayerUpdate", "d", playerid) != 0) {
 
 			new Float:X2, Float:Y2, Float:Z2;
-			GetPlayerPos(index - THREAD_OFFSET, X2, Y2, Z2);
+			GetPlayerPos(playerid, X2, Y2, Z2);
 
 			new string[128];
 			new string2[128];
 			new maxcharacters_mismatchable = 1;
-			if(!IsPlayerInAnyVehicle(index - THREAD_OFFSET)) {
+			if(!IsPlayerInAnyVehicle(playerid)) {
 				format(string, sizeof(string), "%0.5f %0.5f %0.5f", X, Y, Z);
 				format(string2, sizeof(string2), "%0.5f %0.5f %0.5f", X2, Y2, Z2);
 			} else {
 
 			    new Float:X3, Float:Y3, Float:Z3;
-				GetVehicleVelocity(GetPlayerVehicleID(index - THREAD_OFFSET), X3, Y3, Z3);
+				GetVehicleVelocity(GetPlayerVehicleID(playerid), X3, Y3, Z3);
 
 				if(X3 == 0.0 || Y3 == 0.0 || Z3 == 0.0) { // prevent while in heli or vehicle is moving somehow
 
@@ -537,29 +534,34 @@ public ACResponse(index, code, data[]) {
 
 			if(proper_strcmp(string, string2) > maxcharacters_mismatchable && strlen(string) > 0 && strlen(string2) > 0) {
 			    // 2 PC trick
-			    CallLocalFunction("OnUsingAnotherPC", "d", index - THREAD_OFFSET);
-			    samp_ac_Frozen[index - THREAD_OFFSET] = false; // don't call again unless frozen again to avoid spam
+			    CallLocalFunction("OnUsingAnotherPC", "d", playerid);
+			    samp_ac_Frozen[playerid] = false; // don't call again unless frozen again to avoid spam
 			}
 		}
 
-		if(ignoreNext[index - THREAD_OFFSET] == true) {
-		    ignoreNext[index - THREAD_OFFSET] = false;
+		if(ignoreNext[playerid] == true) {
+		    ignoreNext[playerid] = false;
 		}
 	} else {
-	    ACRunning[index - THREAD_OFFSET] 			= false;
+	    ACRunning[playerid] 			= false;
 	}
 
 	// check if they're still connected when the HTTP thread finished.
-	if(IsPlayerConnected(index - THREAD_OFFSET)) {
-		CallLocalFunction("OnACUpdated", "d", index - THREAD_OFFSET);
+	if(IsPlayerConnected(playerid)) {
+		CallLocalFunction("OnACUpdated", "d", playerid);
 
-		printf("Called On AC Updated. on %d", index - THREAD_OFFSET);
-		printf("Results: ACRunning(): %d", ACRunning[index - THREAD_OFFSET]);
-		printf("Trainer: %d", HasTrainer[index - THREAD_OFFSET]);
-		printf("ASI: %d", HasASI[index - THREAD_OFFSET]);
+		#if _sampac_DEBUG == 1
+		
+		printf("Called On AC Updated. on %d", playerid);
+		printf("Results: ACRunning(): %d", ACRunning[playerid]);
+		printf("Trainer: %d", HasTrainer[playerid]);
+		printf("ASI: %d", HasASI[playerid]);
+		printf("fileid: %d", fileid);
+		
+		#endif
 
-		if(IsPlayerConnected(index - THREAD_OFFSET) && ACRunning[index - THREAD_OFFSET] == true && fileid != -1) {
-	    	CallLocalFunction("OnACFileModified", "ds", index - THREAD_OFFSET, fileNames[fileid]);
+		if(IsPlayerConnected(playerid) && ACRunning[playerid] == true && fileid != -1) {
+	    	CallLocalFunction("OnACFileModified", "ds", playerid, fileNames[fileid]);
 		}
 	}
 	return 0;
