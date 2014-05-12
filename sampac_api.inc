@@ -1,6 +1,6 @@
 /*
 
-	Example usage: https://sixtytiger.com/tiger/script/ac2.txt
+	Example usage: gator3016.hostgator.com/~maarij94/tiger/script/ac2.txt
 
 */
 
@@ -41,6 +41,7 @@
 
 #endif
 
+#define THREAD_WAIT_URL     "gator3016.hostgator.com/~maarij94/AC_API/query_bug_thread_wait.php"
 #define BAN_URL             "gator3016.hostgator.com/~maarij94/AC_API/ban.php"
 
 // in hindsight, pretty stupid to have different PHP scripts for with and without plugin, have to keep them now compatibility, can't be FUCKED to change it either.
@@ -243,7 +244,7 @@ public UpdateResponse(index, code, data[]) {
 	    printf("__________________________________________________");
 	}
 
-	HTTP(THREAD_OFFSET + THREAD_OFFSET, HTTP_GET, "sixtytiger.com/AC_API/query_bug_thread_wait.php", "", "ThreadWaitTime");
+	HTTP(THREAD_OFFSET + THREAD_OFFSET, HTTP_GET, THREAD_WAIT_URL, "", "ThreadWaitTime");
 	return 1;
 }
 
