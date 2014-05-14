@@ -1,7 +1,4 @@
 #include <a_samp>
-
-#define _sampac_PLUGINS 0
-
 #include <sampac_api>
 
 #include <YSI\y_iterate>
