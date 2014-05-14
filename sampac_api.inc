@@ -201,7 +201,7 @@ public UpdateResponse(index, code, data[]) {
 	} else if(!strcmp(url, "Under Maintenance.")) {
 	    printf("__________________________________________________");
 	    printf("");
-	    printf("** Whitetiger's Anti-Cheat is current under scheduled maintenance, it cannot be enabled at this time.");
+	    printf("** Whitetiger's Anti-Cheat is currently under scheduled maintenance, it cannot be enabled at this time.");
 	    printf("");
 	    printf("__________________________________________________");
 	    AC_Toggle(false);
@@ -424,7 +424,7 @@ public ACResponse(index, code, data[]) {
 		if(!strcmp(data, "Under Maintenance")) {
 		    printf("__________________________________________________");
 		    printf("");
-		    printf("** Whitetiger's Anti-Cheat is current under scheduled maintenance, it cannot be enabled at this time.");
+		    printf("** Whitetiger's Anti-Cheat is currently under scheduled maintenance, it cannot be enabled at this time.");
 		    printf("");
 		    printf("__________________________________________________");
 		    AC_Toggle(false);
