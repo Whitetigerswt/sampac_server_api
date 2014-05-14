@@ -541,7 +541,7 @@ public AllACResponse(index, code, data[]) {
 
 		// extract playerid
 		new str[2];
-		new playerid_idx = strfind(strOut, " ");
+		new playerid_idx = strfind(strOut, ",");
 		strmid(str, strOut, 0, playerid_idx);
 		playerid = strval(str);
 
